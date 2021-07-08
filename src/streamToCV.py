@@ -9,7 +9,7 @@ import cv2
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from stream_to_cv.msg import Bbox_values
-# from cv_bridge import CvBridge, CvBridgeError
+
 from Mask_RCNN.visualize_cv2 import model, display_instances, class_names
 from tensorflow.python.client import device_lib
 import numpy as np
@@ -66,7 +66,6 @@ def main(args):
       if len(r['rois']):
         bbox_str = np.array_str(r['rois'][0])
         bbox_ls = bbox_str[1:-1].strip().replace("   ", " ").replace("  ", " ").split(" ")
-        print(bbox_str)
         bbox = Bbox_values()
         bbox.x = int(bbox_ls[1])
         bbox.y = int(bbox_ls[0])
