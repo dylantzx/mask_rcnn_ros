@@ -10,7 +10,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from stream_to_cv.msg import Bbox_values
 
-from Mask_RCNN.visualize_cv2 import model, display_instances, class_names
+from Mask_RCNN.scripts.visualize_cv2 import model, display_instances, class_names
 from tensorflow.python.client import device_lib
 import numpy as np
 
