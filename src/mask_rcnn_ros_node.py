@@ -2,13 +2,13 @@
 from __future__ import print_function
 
 import roslib
-roslib.load_manifest('stream_to_cv')
+roslib.load_manifest('mask_rcnn_ros')
 import sys
 import rospy
 import cv2
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
-from stream_to_cv.msg import Bbox_values
+from mask_rcnn_ros.msg import Bbox_values
 
 from Mask_RCNN.scripts.visualize_cv2 import model, display_instances, class_names
 from tensorflow.python.client import device_lib

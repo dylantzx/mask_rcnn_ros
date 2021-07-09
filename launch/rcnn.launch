@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="stream_to_cv" pkg="stream_to_cv" type="streamToCV.py" output="screen">
+    <node name="mask_rcnn_ros" pkg="mask_rcnn_ros" type="mask_rcnn_ros_node.py" output="screen">
         <remap from="image_topic" to="/uav0/camera/image_raw" />
     </node>
 </launch>
