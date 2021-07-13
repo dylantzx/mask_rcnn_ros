@@ -13,6 +13,7 @@ from mask_rcnn_ros.msg import Bbox_values
 from Mask_RCNN.scripts.visualize_cv2 import model, display_instances, class_names
 from tensorflow.python.client import device_lib
 import numpy as np
+import time
 
 class image_converter:
 
@@ -45,16 +46,40 @@ class image_converter:
     else:
         self.cv_img = cv2.cvtColor(self.cv_img, cv2.COLOR_RGB2BGR)
 
+class FPS:
+
+  def __init__(self):
+    self.prev_frame_time = 0
+    self.curr_frame_time = 0
+    self.sum_of_fps = 0
+    self.count = 0
+    self.fps =0
+
+  def calculateFPS(self):
+    self.curr_frame_time = time.time()
+    self.fps = 1/ (self.curr_frame_time - self.prev_frame_time)
+    self.count+=1
+    self.sum_of_fps += self.fps
+    self.prev_frame_time = self.curr_frame_time
+
+  def getAvgFPS(self):
+    print(f"-----------------Avg FPS: {round(self.sum_of_fps/self.count,2)}-----------------")
+
 def main(args):
   
   print(device_lib.list_local_devices())
   rospy.init_node('drone_detector')
   ic = image_converter()
+  fps = FPS()
 
   while not rospy.is_shutdown():
 
     if ic.cv_img is not None:
       results = model.detect([ic.cv_img], verbose=1)
+
+      # Calculate FPS
+      fps.calculateFPS()
+      fps.getAvgFPS()
 
       # Visualize results
       r = results[0]
