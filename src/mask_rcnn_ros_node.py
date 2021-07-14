@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 import roslib
-roslib.load_manifest('mask_rcnn_ros')
 import sys
 import rospy
 import cv2
@@ -62,8 +61,10 @@ class FPS:
     self.sum_of_fps += self.fps
     self.prev_frame_time = self.curr_frame_time
 
-  def getAvgFPS(self):
-    print(f"-----------------Avg FPS: {round(self.sum_of_fps/self.count,2)}-----------------")
+  def getAvgFPS(self, img):
+    avg_fps= round(self.sum_of_fps/self.count,2)
+    # print(f"-----------------Avg FPS: {round(self.sum_of_fps/self.count,2)}-----------------")
+    cv2.putText(img, f"FPS: {avg_fps}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
 
 def main(args):
   
@@ -79,7 +80,7 @@ def main(args):
 
       # Calculate FPS
       fps.calculateFPS()
-      fps.getAvgFPS()
+      fps.getAvgFPS(ic.cv_img)
 
       # Visualize results
       r = results[0]
