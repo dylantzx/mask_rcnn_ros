@@ -45,46 +45,30 @@ class image_converter:
     else:
         self.cv_img = cv2.cvtColor(self.cv_img, cv2.COLOR_RGB2BGR)
 
-class FPS:
-
-  def __init__(self):
-    self.prev_frame_time = 0
-    self.curr_frame_time = 0
-    self.sum_of_fps = 0
-    self.count = 0
-    self.fps =0
-
-  def calculateFPS(self):
-    self.curr_frame_time = time.time()
-    self.fps = 1/ (self.curr_frame_time - self.prev_frame_time)
-    self.count+=1
-    self.sum_of_fps += self.fps
-    self.prev_frame_time = self.curr_frame_time
-
-  def getAvgFPS(self, img):
-    avg_fps= round(self.sum_of_fps/self.count,2)
-    # print(f"-----------------Avg FPS: {round(self.sum_of_fps/self.count,2)}-----------------")
-    cv2.putText(img, f"FPS: {avg_fps}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-
 def main(args):
   
   print(device_lib.list_local_devices())
   rospy.init_node('drone_detector')
   ic = image_converter()
-  fps = FPS()
+  times = []
 
   while not rospy.is_shutdown():
 
     if ic.cv_img is not None:
+      t1 = time.time()
       results = model.detect([ic.cv_img], verbose=1)
+      t2 = time.time()
 
-      # Calculate FPS
-      fps.calculateFPS()
-      fps.getAvgFPS(ic.cv_img)
+      # Store the time taken to predict and get the average of the last 20 predictions
+      times.append(t2-t1)
+      times = times[-20:]
+      ms = sum(times)/len(times)*1000
+      fps = 1000 / ms
 
       # Visualize results
       r = results[0]
       masked_image = display_instances(ic.cv_img, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
+      cv2.putText(masked_image, f"FPS: {fps:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
 
       # publish bbox values when they are available
       # bbox values are in y1,x1,y2,x2
@@ -99,9 +83,10 @@ def main(args):
         bbox.h = int(bbox_ls[2]) - int(bbox_ls[0])
         ic.image_pub.publish(bbox)
 
-      cv2.imshow("Masked Image", ic.cv_img)
+      cv2.imshow("Masked Image", masked_image)
 
       if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyAllWindows()
         break
 
   cv2.destroyAllWindows()
