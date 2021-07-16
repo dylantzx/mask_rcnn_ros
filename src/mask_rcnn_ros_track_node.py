@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import random
+import colorsys
+import tensorflow as tf
+from Mask_RCNN.scripts.visualize_cv2 import model, display_instances, class_names, apply_mask
+
 import roslib
 import sys
 import rospy
@@ -9,10 +14,14 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from mask_rcnn_ros.msg import Bbox_values
 
-from Mask_RCNN.scripts.visualize_cv2 import model, display_instances, class_names
 from tensorflow.python.client import device_lib
 import numpy as np
 import time
+
+from deep_sort import nn_matching
+from deep_sort.detection import Detection
+from deep_sort.tracker import Tracker
+from deep_sort import generate_detections as gdet
 
 class image_converter:
 
@@ -52,6 +61,23 @@ def main(args):
   ic = image_converter()
   times = []
 
+  rectangle_colors=(255,0,0)
+  Text_colors=(255,255,0)
+  Track_only = ['target']
+  NUM_CLASS = {0: 'BG', 1:'target'}
+  key_list = list(NUM_CLASS.keys()) 
+  val_list = list(NUM_CLASS.values())
+
+  # Definition of the parameters
+  max_cosine_distance = 0.7
+  nn_budget = None
+  
+  #initialize deep sort object
+  model_filename = '/home/dylan/catkin_ws/src/mask_rcnn_ros/src/model_data/mars-small128.pb'
+  encoder = gdet.create_box_encoder(model_filename, batch_size=1)
+  metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
+  tracker = Tracker(metric)
+
   while not rospy.is_shutdown():
 
     if ic.cv_img is not None:
@@ -67,9 +93,9 @@ def main(args):
 
       # Visualize results
       r = results[0]
-      masked_image = display_instances(ic.cv_img, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
-      cv2.putText(masked_image, f"FPS: {fps:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-
+      # masked_image = display_instances(ic.cv_img, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
+      
+      boxes, scores, names = [], [], []
       # publish bbox values when they are available
       # bbox values are in y1,x1,y2,x2
       # have to reformat to x,y,w,h
@@ -83,7 +109,84 @@ def main(args):
         bbox.h = int(bbox_ls[2]) - int(bbox_ls[0])
         ic.image_pub.publish(bbox)
 
-      cv2.imshow("Masked Image", masked_image)
+        bbox_values=[bbox.x, bbox.y, bbox.w, bbox.h]
+        boxes.append(bbox_values)
+        scores = r['scores'].tolist()
+        names.append('target')
+
+      # Obtain all the detections for the given frame.
+      boxes = np.array(boxes) 
+      names = np.array(names)
+      scores = np.array(scores)
+
+      features = np.array(encoder(ic.cv_img, boxes))
+      detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in zip(boxes, scores, names, features)]
+
+      # Pass detections to the deepsort object and obtain the track information.
+      tracker.predict()
+      tracker.update(detections)
+
+      # Obtain info from the tracks
+      tracked_bboxes = []
+      for track in tracker.tracks:
+          if not track.is_confirmed() or track.time_since_update > 5:
+              continue 
+          bbox = track.to_tlbr() # Get the corrected/predicted bounding box
+          class_name = track.get_class() #Get the class name of particular object
+          tracking_id = track.track_id # Get the ID for the particular track
+          index = key_list[val_list.index(class_name)] # Get predicted object index by object name
+          tracked_bboxes.append(bbox.tolist() + [tracking_id, index]) # Structure data, that we could use it with our draw_bbox function
+
+      num_classes = len(NUM_CLASS)
+      image_h, image_w, _ = ic.cv_img.shape
+      hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
+      #print("hsv_tuples", hsv_tuples)
+      colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
+      colors = list(map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), colors))
+
+      random.seed(0)
+      random.shuffle(colors)
+      random.seed(None)
+
+      if len(tracked_bboxes) == 1:
+        bbox = tracked_bboxes[0]
+        coor = np.array(bbox[:4], dtype=np.int32)
+        score = bbox[4]
+        class_ind = int(bbox[5])
+        bbox_color = rectangle_colors if rectangle_colors != '' else colors[class_ind]
+        bbox_thick = int(0.6 * (image_h + image_w) / 1000)
+        if bbox_thick < 1: bbox_thick = 1
+        fontScale = 0.75 * bbox_thick
+        (x1, y1), (x2, y2) = (coor[0], coor[1]), (coor[2], coor[3])
+        mask = r['masks'][:, :, 0]
+        masked_image = apply_mask(ic.cv_img, mask, bbox_color)
+          
+        cv2.putText(masked_image, f"FPS: {fps:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+      
+        # put object rectangle
+        cv2.rectangle(masked_image, (x1, y1), (x2, y2), bbox_color, bbox_thick*2)
+
+        score_str = " {:.2f}".format(score)
+
+        score_str = " "+str(score)
+
+        try:
+            label = "{}".format(NUM_CLASS[class_ind]) + score_str
+        except KeyError:
+            print("You received KeyError, this might be that you are trying to use yolo original weights")
+            print("while using custom classes, if using custom model in configs.py set YOLO_CUSTOM_WEIGHTS = True")
+
+        # get text size
+        (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                                              fontScale, thickness=bbox_thick)
+        # put filled text rectangle
+        cv2.rectangle(masked_image, (x1, y1), (x1 + text_width, y1 - text_height - baseline), bbox_color, thickness=cv2.FILLED)
+
+        # put text above rectangle
+        cv2.putText(masked_image, label, (x1, y1-4), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                    fontScale, Text_colors, bbox_thick, lineType=cv2.LINE_AA)
+
+        cv2.imshow("Masked Image", masked_image)
 
       if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
