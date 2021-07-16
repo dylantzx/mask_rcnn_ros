@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="mask_rcnn_ros_detect_node" pkg="mask_rcnn_ros" type="mask_rcnn_ros_detect_node.py" output="screen">
+        <remap from="image_topic" to="/uav0/camera/image_raw" />
+    </node>
+</launch>
