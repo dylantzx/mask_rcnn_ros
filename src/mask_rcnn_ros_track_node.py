@@ -59,7 +59,7 @@ def main(args):
   print(device_lib.list_local_devices())
   rospy.init_node('drone_detector')
   ic = image_converter()
-  times = []
+  times, times_2 = [], []
 
   rectangle_colors=(255,0,0)
   Text_colors=(255,255,0)
@@ -82,6 +82,7 @@ def main(args):
 
     if ic.cv_img is not None:
       t1 = time.time()
+
       results = model.detect([ic.cv_img], verbose=1)
       t2 = time.time()
 
@@ -93,8 +94,7 @@ def main(args):
 
       # Visualize results
       r = results[0]
-      # masked_image = display_instances(ic.cv_img, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
-      
+    
       boxes, scores, names = [], [], []
       # publish bbox values when they are available
       # bbox values are in y1,x1,y2,x2
@@ -114,10 +114,10 @@ def main(args):
         scores = r['scores'].tolist()
         names.append('target')
 
-      # Obtain all the detections for the given frame.
-      boxes = np.array(boxes) 
-      names = np.array(names)
-      scores = np.array(scores)
+        # Obtain all the detections for the given frame.
+        boxes = np.array(boxes) 
+        names = np.array(names)
+        scores = np.array(scores)
 
       features = np.array(encoder(ic.cv_img, boxes))
       detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in zip(boxes, scores, names, features)]
@@ -148,7 +148,7 @@ def main(args):
       random.shuffle(colors)
       random.seed(None)
 
-      if len(tracked_bboxes) == 1:
+      if len(tracked_bboxes) == 1 and np.any(r['masks']):
         bbox = tracked_bboxes[0]
         coor = np.array(bbox[:4], dtype=np.int32)
         score = bbox[4]
@@ -160,8 +160,6 @@ def main(args):
         (x1, y1), (x2, y2) = (coor[0], coor[1]), (coor[2], coor[3])
         mask = r['masks'][:, :, 0]
         masked_image = apply_mask(ic.cv_img, mask, bbox_color)
-          
-        cv2.putText(masked_image, f"FPS: {fps:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
       
         # put object rectangle
         cv2.rectangle(masked_image, (x1, y1), (x2, y2), bbox_color, bbox_thick*2)
@@ -186,7 +184,23 @@ def main(args):
         cv2.putText(masked_image, label, (x1, y1-4), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                     fontScale, Text_colors, bbox_thick, lineType=cv2.LINE_AA)
 
+        t3 = time.time()
+        times_2.append(t3-t1)
+        times_2 = times_2[-20:]
+        fps2 = 1000 / (sum(times_2)/len(times_2)*1000)
+        
+        cv2.putText(masked_image, f"FPS: {fps2:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
         cv2.imshow("Masked Image", masked_image)
+
+      else:
+        t3 = time.time()
+        times_2.append(t3-t1)
+        times_2 = times_2[-20:]
+        fps2 = 1000 / (sum(times_2)/len(times_2)*1000)
+        
+        cv2.putText(ic.cv_img, f"FPS: {fps2:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+        cv2.imshow("Masked Image", ic.cv_img)
+
 
       if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
