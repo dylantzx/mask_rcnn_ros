@@ -67,6 +67,7 @@ def main(args):
       times.append(t2-t1)
       times = times[-20:]
       ms = sum(times)/len(times)*1000
+      print(f"\n\nTime taken to detect is: {ms:.2f}ms\n\n")
       fps = 1000 / ms
 
       # Visualize results
