@@ -22,7 +22,7 @@ class image_converter:
     self.cv_img = None
 
   def callback(self,data):
-        
+    # _t1 = time.time() 
     width = data.width
     height = data.height
     channels = int(len(data.data) / (width * height))
@@ -44,6 +44,10 @@ class image_converter:
         self.cv_img = cv2.cvtColor(self.cv_img, cv2.COLOR_RGB2GRAY)
     else:
         self.cv_img = cv2.cvtColor(self.cv_img, cv2.COLOR_RGB2BGR)
+
+    # _t2 = time.time()
+    # convert_ms = (_t2 - _t1)*1000
+    # print(f"\n\nTime taken to convert is: {convert_ms:.2f}ms\n\n")
 
 def main(args):
   
