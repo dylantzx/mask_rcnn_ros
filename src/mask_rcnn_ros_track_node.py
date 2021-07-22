@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import random
 import colorsys
+from numpy.lib.index_tricks import OGridClass
 import tensorflow as tf
 from Mask_RCNN.scripts.visualize_cv2 import model, display_instances, class_names, apply_mask
 
@@ -58,29 +59,56 @@ class image_converter:
     # convert_ms = (_t2 - _t1)*1000
     # print(f"\n\nTime taken to convert is: {convert_ms:.2f}ms\n\n")
 
+class FPS:
+
+  def __init__(self):
+    self.t1 = 0
+    self.t2 = 0
+    self.fps_list = []
+    self.fps = 0
+
+  def start(self):
+    self.t1 = time.time()
+
+  def stop(self):
+    self.t2 = time.time()
+    self.update()
+
+  def update(self):
+    self.fps_list.append(self.t2 - self.t1)
+    self.fps_list = self.fps_list[-20:]
+    ms = sum(self.fps_list)/len(self.fps_list)*1000
+    self.fps = 1000 / ms
+
+  def getFPS(self):
+    return self.fps
+
 class object_tracker:
 
   def __init__(self):
     self.rectangle_colors=(255,0,0)
     self.Text_colors=(255,255,0)
-    self.Track_only = ['target']
+
     self.NUM_CLASS = {0: 'BG', 1:'target'}
     self.key_list = list(self.NUM_CLASS.keys()) 
     self.val_list = list(self.NUM_CLASS.values())
+
     self.max_cosine_distance = 0.7
     self.nn_budget = None
+    
     self.model_filename = '/home/dylan/catkin_ws/src/mask_rcnn_ros/src/model_data/mars-small128.pb'
     self.encoder = gdet.create_box_encoder(self.model_filename, batch_size=1)
     self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", self.max_cosine_distance, self.nn_budget)
     self.tracker = Tracker(self.metric)
 
-  def track_object(self, img, boxes, names, scores, r, times_2, t1):
+  def track_object(self, img, boxes, names, scores, r, fps):
     features = np.array(self.encoder(img, boxes))
     detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in zip(boxes, scores, names, features)]
 
     # Pass detections to the deepsort object and obtain the track information.
     self.tracker.predict()
     self.tracker.update(detections)
+    fps.stop()
 
     # Obtain info from the tracks
     tracked_bboxes = []
@@ -139,22 +167,12 @@ class object_tracker:
       # put text above rectangle
       cv2.putText(masked_image, label, (x1, y1-4), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                   fontScale, self.Text_colors, bbox_thick, lineType=cv2.LINE_AA)
-
-      t3 = time.time()
-      times_2.append(t3-t1)
-      times_2 = times_2[-20:]
-      fps2 = 1000 / (sum(times_2)/len(times_2)*1000)
       
-      cv2.putText(masked_image, f"FPS: {fps2:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+      cv2.putText(masked_image, f"FPS: {fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
       cv2.imshow("Masked Image", masked_image)
 
     else:
-      t3 = time.time()
-      times_2.append(t3-t1)
-      times_2 = times_2[-20:]
-      fps2 = 1000 / (sum(times_2)/len(times_2)*1000)
-      
-      cv2.putText(img, f"FPS: {fps2:.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+      cv2.putText(img, f"FPS: {fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
       cv2.imshow("Masked Image", img)
 
 def main(args):
@@ -163,22 +181,15 @@ def main(args):
   rospy.init_node('drone_detector')
   ic = image_converter()
   ot = object_tracker()
-  times, times_2 = [], []
+  fps1 = FPS()
 
   while not rospy.is_shutdown():
 
     if ic.cv_img is not None:
-      t1 = time.time()
+
+      fps1.start()
       results = model.detect([ic.cv_img], verbose=1)
-      t2 = time.time()
-
-      # Store the time taken to predict and get the average of the last 20 predictions
-      times.append(t2-t1)
-      times = times[-20:]
-      ms = sum(times)/len(times)*1000
-      print(f"\n\nTime taken to detect is: {ms:.2f}ms\n\n")
-      fps = 1000 / ms
-
+      
       # Visualize results
       r = results[0]
     
@@ -206,7 +217,7 @@ def main(args):
         names = np.array(names)
         scores = np.array(scores)
 
-      ot.track_object(ic.cv_img, boxes, names, scores, r, times_2, t1)
+      ot.track_object(ic.cv_img, boxes, names, scores, r, fps1)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
       cv2.destroyAllWindows()
