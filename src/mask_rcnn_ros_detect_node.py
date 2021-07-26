@@ -4,6 +4,10 @@ from __future__ import print_function
 from FPS import *
 from ImageConverter import *
 
+import os
+# 0 for GPU, -1 for CPU
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
 import sys
 import rospy
 import cv2

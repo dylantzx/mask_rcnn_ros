@@ -48,7 +48,8 @@ class ObjectTracker:
             tracking_id = track.track_id # Get the ID for the particular track
             index = self.key_list[self.val_list.index(class_name)] # Get predicted object index by object name
             tracked_bboxes.append(bbox.tolist() + [tracking_id, index]) # Structure data, that we could use it with our draw_bbox function
-    
+
+        # print(f"tracked_bboxes: {tracked_bboxes}")
         num_classes = len(self.NUM_CLASS)
         image_h, image_w, _ = img.shape
         hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
@@ -70,8 +71,9 @@ class ObjectTracker:
             if bbox_thick < 1: bbox_thick = 1
             fontScale = 0.75 * bbox_thick
             (x1, y1), (x2, y2) = (coor[0], coor[1]), (coor[2], coor[3])
-            mask = r['masks'][:, :, 0]
-            masked_image = apply_mask(img, mask, bbox_color)
+            # mask = r['masks'][:, :, 0]
+            # masked_image = apply_mask(img, mask, bbox_color)
+            masked_image = img
             
             # put object rectangle
             cv2.rectangle(masked_image, (x1, y1), (x2, y2), bbox_color, bbox_thick*2)
