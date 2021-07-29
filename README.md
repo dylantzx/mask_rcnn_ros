@@ -98,9 +98,11 @@ You can also install them individually with `pip install <requirement>` in your 
 ## Training MaskRCNN
 ---
 
-To train Mask_RCNN on your own custom dataset, you can refer to [this website](https://www.immersivelimit.com/tutorials/using-mask-r-cnn-on-custom-coco-like-dataset) and create a jupyter notebook to get the weights. 
+To train Mask_RCNN on your own custom dataset, you can refer to [this website](https://www.immersivelimit.com/tutorials/using-mask-r-cnn-on-custom-coco-like-dataset) and create a jupyter notebook, then place it under the `Mask_RCNN/scripts` directory. 
 
-After getting your weights (.h5 extension), place them under the `model_weights` directory.
+Similar to the tutorial, place your images for training, validation and testing under `Mask_RCNN/datasets/`
+
+After getting your weights (.h5 extension), place them under the `Mask_RCNN/model_weights` directory.
 
 ## Modifying to use it on your own dataset
 ---
@@ -114,3 +116,11 @@ After getting your weights (.h5 extension), place them under the `model_weights`
 
 ## Evaluation
 ---
+The evaluation script is found in the `Mask_RCNN/evaluation/main.py`.
+
+Change the path and names on lines 30 - 32 into your own.
+
+In your terminal, change directory into `Mask_RCNN/evaluation` and run `python main.py`
+
+Upon successful execution, you should get an excel spreadsheet under `Mask_RCNN/exports/` with your evaluation results.
+
