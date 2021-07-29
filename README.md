@@ -52,10 +52,8 @@ The current repository is for a drone tracking another drone on PX4 but you shou
 
 3. [Conda environment guide](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
 
-### The rest ###
-Install them with `pip install <requirement>` in your virtual environment 
-
-You can also clone the repository then change to the `Mask_RCNN` directory in terminal and use `pip install -r requirements.txt` 
+### The rest of the prerequisites ###
+Clone the repository then change to the `Mask_RCNN` directory in terminal and use `pip install -r requirements.txt` 
 ```
 cd ~/catkin_ws/src
 git clone https://github.com/dylantzx/mask_rcnn_ros.git --recursive
@@ -63,6 +61,8 @@ cd mask_rcnn_ros/src/Mask_RCNN
 conda activate <your_env>
 pip install -r requirements.txt
 ```
+
+You can also install them individually with `pip install <requirement>` in your virtual environment 
 
 ## Getting Started
 ---
@@ -79,13 +79,21 @@ pip install -r requirements.txt
 
 ## How to run codes
 ---
+1. Go into your virtual environment
 
-Before running the codes, ensure that you have fulfilled all the prerequisites. It would be best to install them in a virtual environment. Refer to the installation guide below for some useful references.
+    ```conda activate <your_env>```
 
+2. To run object detection, run the launch file
+    
+    ```roslaunch mask_rcnn_ros rcnn_detect.launch```
 
+![Object detection only](images/maskRCNN_detect.png)
 
-To run object detection, 
+3. To run object detection with tracking, run the launch file
+    
+    ```roslaunch mask_rcnn_ros rcnn_track.launch```
 
+![Object detection with tracking](images/maskRCNN_track.png)
 
 ## Training MaskRCNN
 ---
