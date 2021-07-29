@@ -98,8 +98,19 @@ You can also install them individually with `pip install <requirement>` in your 
 ## Training MaskRCNN
 ---
 
-To train Mask_RCNN on your own custom dataset, you refer to [this website](https://www.immersivelimit.com/tutorials/using-mask-r-cnn-on-custom-coco-like-dataset) and create a jupyter notebook to do so.
+To train Mask_RCNN on your own custom dataset, you can refer to [this website](https://www.immersivelimit.com/tutorials/using-mask-r-cnn-on-custom-coco-like-dataset) and create a jupyter notebook to get the weights. 
 
+After getting your weights (.h5 extension), place them under the `model_weights` directory.
 
+## Modifying to use it on your own dataset
+---
 
+1. Go to `Mask_RCNN/scripts/visualize_cv2.py`.
+2. Change the path of `COCO_MODEL_PATH` in line 13 to the name of your weight file.
+3. Change the `class_names` in line 53 to your own list of class names
+4. If required, change the settings in `InferenceConfig`
+5. Go to the launch file that you will be using
+6. Remap the `image_topic` to your own ROStopic that is publishing the images
 
+## Evaluation
+---
