@@ -8,6 +8,10 @@
 
 - [Setup PX4, QGC and MavROS](https://github.com/dylantzx/PX4)
 
+- JupyterLab
+
+- Anaconda3
+
 - Python 3.7+
 
 - TensorFlow-gpu 2.5.0
@@ -16,7 +20,11 @@
 
 - Numpy, skimage, scipy, Pillow, cython, h5py
 
+- NVIDIA Drivers 
+
 - CUDA 11.3
+
+- CuDNN 
 
 ## About
 ---
@@ -25,7 +33,36 @@ This is a ROS package of [Mask RCNN](https://github.com/akTwelve/Mask_RCNN) with
 
 It contains ROS nodes for object detection and object detection with tracking.
 
-The current repository is for a drone tracking another drone on PX4.
+The current repository is for a drone tracking another drone on PX4 but you should be able to adapt it for your own use case.
+
+## Installation Guide
+---
+
+### NVIDIA Drivers, CUDA and CuDNN 
+
+1. [Guide for NVIDIA Drivers and CuDNN installation](https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html#installlinux)
+
+2. [Guide for CUDA installation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
+
+### Anaconda3, JupyterLab and Conda environment
+
+1. [Anaconda3 Installation](https://www.anaconda.com/products/individual) 
+
+2. [JupyterLab Installation](https://jupyter.org/)
+
+3. [Conda environment guide](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
+
+### The rest ###
+Install them with `pip install <requirement>` in your virtual environment 
+
+You can also clone the repository then change to the `Mask_RCNN` directory in terminal and use `pip install -r requirements.txt` 
+```
+cd ~/catkin_ws/src
+git clone https://github.com/dylantzx/mask_rcnn_ros.git --recursive
+cd mask_rcnn_ros/src/Mask_RCNN
+conda activate <your_env>
+pip install -r requirements.txt
+```
 
 ## Getting Started
 ---
@@ -39,6 +76,22 @@ The current repository is for a drone tracking another drone on PX4.
 [mask_rcnn_ros_detect_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/mask_rcnn_ros_detect_node.py) - Main script that runs MaskRCNN with ROS for object detection
 
 [mask_rcnn_ros_track_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/mask_rcnn_ros_track_node.py) - Main script that runs MaskRCNN with ROS for object detection with tracking.
+
+## How to run codes
+---
+
+Before running the codes, ensure that you have fulfilled all the prerequisites. It would be best to install them in a virtual environment. Refer to the installation guide below for some useful references.
+
+
+
+To run object detection, 
+
+
+## Training MaskRCNN
+---
+
+To train Mask_RCNN on your own custom dataset, you refer to [this website](https://www.immersivelimit.com/tutorials/using-mask-r-cnn-on-custom-coco-like-dataset) and create a jupyter notebook to do so.
+
 
 
 
