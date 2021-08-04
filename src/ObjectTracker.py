@@ -22,7 +22,7 @@ class ObjectTracker:
         self.max_cosine_distance = 0.7
         self.nn_budget = None
 
-        self.model_filename = '/home/dylan/catkin_ws/src/mask_rcnn_ros/src/model_data/mars-small128.pb'
+        self.model_filename = '/home/dylan/catkin_ws/src/mask_rcnn_ros/src/model_data/custom_4086.pb'
         self.encoder = gdet.create_box_encoder(self.model_filename, batch_size=1)
         self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", self.max_cosine_distance, self.nn_budget)
         self.tracker = Tracker(self.metric)
@@ -71,8 +71,8 @@ class ObjectTracker:
             if bbox_thick < 1: bbox_thick = 1
             fontScale = 0.75 * bbox_thick
             (x1, y1), (x2, y2) = (coor[0], coor[1]), (coor[2], coor[3])
-            # mask = r['masks'][:, :, 0]
-            # masked_image = apply_mask(img, mask, bbox_color)
+            mask = r['masks'][:, :, 0]
+            masked_image = apply_mask(img, mask, bbox_color)
             masked_image = img
             
             # put object rectangle
