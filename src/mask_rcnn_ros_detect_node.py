@@ -3,6 +3,7 @@ from __future__ import print_function
 
 from FPS import *
 from ImageConverter import *
+from ExtraFunctions import *
 
 import os
 # 0 for GPU, -1 for CPU
@@ -24,6 +25,7 @@ def main(args):
   rospy.init_node('drone_detector')
   ic = ImageConverter()
   fps = FPS()
+  # extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
 
   while not rospy.is_shutdown():
 
@@ -42,6 +44,8 @@ def main(args):
       # bbox values are in y1,x1,y2,x2
       # have to reformat to x,y,w,h
       if len(r['rois']):
+
+        # To publish to rostopic
         bbox_str = np.array_str(r['rois'][0])
         bbox_ls = bbox_str[1:-1].strip().replace("   ", " ").replace("  ", " ").split(" ")
         bbox = Bbox_values()
@@ -50,6 +54,10 @@ def main(args):
         bbox.w = int(bbox_ls[3]) - int(bbox_ls[1])
         bbox.h = int(bbox_ls[2]) - int(bbox_ls[0])
         ic.image_pub.publish(bbox)
+        
+        # # For saving cropped images
+        # extra.update()
+        # extra.crop_objects(ic.cv_img, r['rois'])
 
       cv2.imshow("Masked Image", masked_image)
 
