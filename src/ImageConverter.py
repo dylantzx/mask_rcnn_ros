@@ -4,6 +4,8 @@ from mask_rcnn_ros.msg import Bbox_values
 import numpy as np
 import cv2
 
+import threading
+
 class ImageConverter:
 
     def __init__(self):
@@ -12,6 +14,8 @@ class ImageConverter:
         self.cv_img = None
 
     def callback(self,data):
+        rospy.loginfo("\nCallback Thread ID %s\n\n", threading.current_thread())
+    
         width = data.width
         height = data.height
         channels = int(len(data.data) / (width * height))
