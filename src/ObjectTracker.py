@@ -22,7 +22,7 @@ class ObjectTracker:
         self.max_cosine_distance = 0.7
         self.nn_budget = None
 
-        self.model_filename = '/home/dylan/catkin_ws/src/mask_rcnn_ros/src/model_data/custom_4086.pb'
+        self.model_filename = '/home/dylan/catkin_ws/src/mask_rcnn_ros/src/model_data/custom_11065.pb'
         self.encoder = gdet.create_box_encoder(self.model_filename, batch_size=1)
         self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", self.max_cosine_distance, self.nn_budget)
         self.tracker = Tracker(self.metric)
