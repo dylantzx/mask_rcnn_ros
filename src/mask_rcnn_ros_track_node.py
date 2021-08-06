@@ -23,13 +23,18 @@ def main(args):
   ic = ImageConverter()
   ot = ObjectTracker()
   fps = FPS()
+  detected = 0
 
   while not rospy.is_shutdown():
 
     if ic.cv_img is not None:
 
       fps.start()
-      results = model.detect([ic.cv_img], verbose=1)
+
+      if detected <= 50: 
+        results = model.detect([ic.cv_img], verbose=1)
+        detected += 1
+        print(f"\n\ndetection: {detected}\n\n")
       
       # Visualize results
       r = results[0]
