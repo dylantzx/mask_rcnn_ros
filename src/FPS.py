@@ -21,5 +21,8 @@ class FPS:
         ms = sum(self.fps_list)/len(self.fps_list)*1000
         self.fps = 1000 / ms
 
+    def elapsed(self):
+        return (self.t2 - self.t1) * 1000
+
     def getFPS(self):
         return self.fps
