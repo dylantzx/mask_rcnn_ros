@@ -2,6 +2,7 @@ import os
 import cv2
 import random
 import numpy as np
+from mask_rcnn_ros.msg import Bbox_values
 
 class ExtraFunctions():
     
@@ -37,3 +38,13 @@ class ExtraFunctions():
 
     def update(self):
         self.count += 1
+
+    def format_bbox(self, rois):
+        bbox_str = np.array_str(rois[0])
+        bbox_ls = bbox_str[1:-1].strip().replace("   ", " ").replace("  ", " ").split(" ")
+        bbox = Bbox_values()
+        bbox.x = int(bbox_ls[1])
+        bbox.y = int(bbox_ls[0])
+        bbox.w = int(bbox_ls[3]) - int(bbox_ls[1])
+        bbox.h = int(bbox_ls[2]) - int(bbox_ls[0])
+        return bbox

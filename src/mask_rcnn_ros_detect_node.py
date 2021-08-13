@@ -13,8 +13,6 @@ import sys
 import rospy
 import cv2
 
-from mask_rcnn_ros.msg import Bbox_values
-
 from Mask_RCNN.scripts.visualize_cv2 import model, display_instances, class_names
 from tensorflow.python.client import device_lib
 import numpy as np
@@ -31,11 +29,11 @@ def main(args):
   fps2 = FPS()
   fps3 = FPS()
   fps4 = FPS()
-  # extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
+  extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
   
   while not rospy.is_shutdown():
 
-    rospy.loginfo("\n\nMain Thread ID %s\n", threading.current_thread())
+    # rospy.loginfo("\n\nMain Thread ID %s\n", threading.current_thread())
 
     if ic.cv_img is not None:
 
@@ -58,16 +56,10 @@ def main(args):
       fps2.start()
       if len(r['rois']):
         # To publish to rostopic
-        bbox_str = np.array_str(r['rois'][0])
-        bbox_ls = bbox_str[1:-1].strip().replace("   ", " ").replace("  ", " ").split(" ")
-        bbox = Bbox_values()
-        bbox.x = int(bbox_ls[1])
-        bbox.y = int(bbox_ls[0])
-        bbox.w = int(bbox_ls[3]) - int(bbox_ls[1])
-        bbox.h = int(bbox_ls[2]) - int(bbox_ls[0])
+        bbox = extra.format_bbox(r['rois'])
         ic.image_pub.publish(bbox)
         
-        # # For saving cropped images
+        # For saving cropped images
         # extra.update()
         # extra.crop_objects(ic.cv_img, r['rois'])
       fps2.stop()
