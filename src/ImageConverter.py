@@ -14,7 +14,7 @@ class ImageConverter:
         self.cv_img = None
 
     def callback(self,data):
-        rospy.loginfo("\nCallback Thread ID %s\n\n", threading.current_thread())
+        # rospy.loginfo("\nCallback Thread ID %s\n\n", threading.current_thread())
     
         width = data.width
         height = data.height
