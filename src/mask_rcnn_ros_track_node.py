@@ -6,6 +6,7 @@ from Mask_RCNN.scripts.visualize_cv2 import model
 from FPS import *
 from ObjectTracker import *
 from ImageConverter import *
+from ExtraFunctions import *
 
 import sys
 import rospy
@@ -23,7 +24,9 @@ def main(args):
   ic = ImageConverter()
   ot = ObjectTracker()
   fps = FPS()
+  fps1 = FPS()
   detected = 0
+  extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
 
   while not rospy.is_shutdown():
 
@@ -44,26 +47,24 @@ def main(args):
       # bbox values are in y1,x1,y2,x2
       # have to reformat to x,y,w,h
       if len(r['rois']):
-        bbox_str = np.array_str(r['rois'][0])
-        bbox_ls = bbox_str[1:-1].strip().replace("   ", " ").replace("  ", " ").split(" ")
-        bbox = Bbox_values()
-        bbox.x = int(bbox_ls[1])
-        bbox.y = int(bbox_ls[0])
-        bbox.w = int(bbox_ls[3]) - int(bbox_ls[1])
-        bbox.h = int(bbox_ls[2]) - int(bbox_ls[0])
+        # To publish to rostopic
+        bbox = extra.format_bbox(r['rois'])
         ic.image_pub.publish(bbox)
 
+        # To format for object tracking
         bbox_values=[bbox.x, bbox.y, bbox.w, bbox.h]
         boxes.append(bbox_values)
         scores = r['scores'].tolist()
         names.append('target')
 
-        # Obtain all the detections for the given frame.
         boxes = np.array(boxes) 
         names = np.array(names)
         scores = np.array(scores)
 
+      fps1.start()
       ot.track_object(ic.cv_img, boxes, names, scores, r, fps)
+      fps1.stop()
+      print(f"Time taken to track: {fps1.elapsed()} ms")
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
       cv2.destroyAllWindows()
