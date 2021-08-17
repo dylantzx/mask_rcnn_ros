@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 
 from FPS import *
 from ImageConverter import *
@@ -29,6 +28,7 @@ def main(args):
   fps2 = FPS()
   fps3 = FPS()
   fps4 = FPS()
+  total_fps = FPS()
   extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
   
   while not rospy.is_shutdown():
@@ -37,6 +37,7 @@ def main(args):
 
     if ic.cv_img is not None:
 
+      total_fps.start()
       fps.start()
       results = model.detect([ic.cv_img], verbose=1)
       fps.stop()
@@ -46,7 +47,6 @@ def main(args):
       # Visualize results
       r = results[0]
       masked_image = display_instances(ic.cv_img, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
-      cv2.putText(masked_image, f"FPS: {fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
       fps1.stop()
       print(f"Time taken to display instances: {fps1.elapsed()} ms")
 
@@ -64,6 +64,9 @@ def main(args):
         # extra.crop_objects(ic.cv_img, r['rois'])
       fps2.stop()
       print(f"Time taken to publish on ROS: {fps2.elapsed()} ms")
+
+      total_fps.stop()
+      cv2.putText(masked_image, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
 
       fps3.start()
       cv2.imshow("Masked Image", masked_image)
