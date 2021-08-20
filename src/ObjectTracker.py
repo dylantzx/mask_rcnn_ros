@@ -27,29 +27,33 @@ class ObjectTracker:
         self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", self.max_cosine_distance, self.nn_budget)
         self.tracker = Tracker(self.metric)
 
-    def track_object(self, img, boxes, names, scores, r, fps):
+    def track_detected_object(self, img, boxes, names, scores):
         features = np.array(self.encoder(img, boxes))
         detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in zip(boxes, scores, names, features)]
 
         # Pass detections to the deepsort object and obtain the track information.
         self.tracker.predict()
         self.tracker.update(detections)
-        fps.stop()
-        self.show_tracked_object(img, r, fps)
 
-    def show_tracked_object(self, img, r, fps):
+
+    def get_tracked_bboxes(self):
         # Obtain info from the tracks
         tracked_bboxes = []
         for track in self.tracker.tracks:
-            if not track.is_confirmed() or track.time_since_update > 5:
-                continue 
+            print(f"Track: {track.track_id}, Time since update: {track.time_since_update}, bbox: {track.to_tlbr()}")
+            if not track.is_confirmed() or track.time_since_update >= 22:
+                print("SKIP...\n")
+                continue
             bbox = track.to_tlbr() # Get the corrected/predicted bounding box
             class_name = track.get_class() #Get the class name of particular object
             tracking_id = track.track_id # Get the ID for the particular track
             index = self.key_list[self.val_list.index(class_name)] # Get predicted object index by object name
             tracked_bboxes.append(bbox.tolist() + [tracking_id, index]) # Structure data, that we could use it with our draw_bbox function
 
-        # print(f"tracked_bboxes: {tracked_bboxes}")
+        return tracked_bboxes
+
+    def show_tracked_object(self, img, tracked_bboxes):
+        
         num_classes = len(self.NUM_CLASS)
         image_h, image_w, _ = img.shape
         hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
@@ -61,7 +65,7 @@ class ObjectTracker:
         random.shuffle(colors)
         random.seed(None)
 
-        if len(tracked_bboxes) == 1 and np.any(r['masks']):
+        if len(tracked_bboxes) >= 1:
             bbox = tracked_bboxes[0]
             coor = np.array(bbox[:4], dtype=np.int32)
             score = bbox[4]
@@ -71,14 +75,9 @@ class ObjectTracker:
             if bbox_thick < 1: bbox_thick = 1
             fontScale = 0.75 * bbox_thick
             (x1, y1), (x2, y2) = (coor[0], coor[1]), (coor[2], coor[3])
-            mask = r['masks'][:, :, 0]
-            masked_image = apply_mask(img, mask, bbox_color)
-            masked_image = img
             
             # put object rectangle
-            cv2.rectangle(masked_image, (x1, y1), (x2, y2), bbox_color, bbox_thick*2)
-
-            score_str = " {:.2f}".format(score)
+            cv2.rectangle(img, (x1, y1), (x2, y2), bbox_color, bbox_thick*2)
 
             score_str = " "+str(score)
 
@@ -92,15 +91,10 @@ class ObjectTracker:
             (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                                                     fontScale, thickness=bbox_thick)
             # put filled text rectangle
-            cv2.rectangle(masked_image, (x1, y1), (x1 + text_width, y1 - text_height - baseline), bbox_color, thickness=cv2.FILLED)
+            cv2.rectangle(img, (x1, y1), (x1 + text_width, y1 - text_height - baseline), bbox_color, thickness=cv2.FILLED)
 
             # put text above rectangle
-            cv2.putText(masked_image, label, (x1, y1-4), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+            cv2.putText(img, label, (x1, y1-4), cv2.FONT_HERSHEY_COMPLEX_SMALL,
                         fontScale, self.Text_colors, bbox_thick, lineType=cv2.LINE_AA)
-            
-            cv2.putText(masked_image, f"FPS: {fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-            cv2.imshow("Masked Image", masked_image)
-
-        else:
-            cv2.putText(img, f"FPS: {fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-            cv2.imshow("Masked Image", img)
+        
+        

@@ -15,8 +15,8 @@ from Mask_RCNN.scripts.visualize_cv2 import model, class_dict, class_names
 from tensorflow.python.client import device_lib
 import numpy as np
 
-video_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_1.avi"
-output_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_7_results.mp4"
+video_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3_60fps.avi"
+output_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3_60_fps_10fps_results_1.mp4"
 
 
 def display_instances(image, boxes, masks, ids, names, scores):
@@ -64,8 +64,8 @@ def main(args):
     extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
     avg_detection_ls = []
     avg_tracking_ls = []
-    avg_total_fps_ls = []
 
+    ##### Have to initiate to read frame by frame from video #####
     if video_path:
         vid = cv2.VideoCapture(video_path) # detect on video
     
@@ -74,19 +74,23 @@ def main(args):
     fps = int(vid.get(cv2.CAP_PROP_FPS))
     total_frame_count = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    frame_count = -2 # Start from -3 because object tracker needs minimum of 3 frames
+    frame_count = 0
+    detection_frame = 0
 
     print(f"\nVideo fps: {fps}")
     print(f"Video frame count: {total_frame_count}\n")
 
     codec = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter(output_path, codec, fps, (width, height)) # output_path must be .mp4
+
+    #################################################################
+
     duration.start()
 
     while True:
 
-        detection_fps.start()
         total_fps.start()
+        detection_fps.start()
         _, frame = vid.read()
         
         try:
@@ -98,8 +102,14 @@ def main(args):
         frame_count+=1
         print(f"\nFrame: {frame_count}")
 
-        if frame_count <= 1 or frame_count%10==0:
-            print("Detecting...\n")
+        tracked_bboxes = ot.get_tracked_bboxes()
+        print(f"\nTracked bboxes: {tracked_bboxes}\n")
+
+        # When there is NO matched tracked bboxes, run detection
+        ## If object detected: Updates bboxes
+        ## If nothing detected: continue to loop since cannot track yet
+        if len(tracked_bboxes) == 0:
+            print("No matched tracked_bboxes... Start detection...\n")
             results = model.detect([original_frame], verbose=0)
             detection_fps.stop()
 
@@ -109,7 +119,9 @@ def main(args):
             boxes, scores, names = [], [], []
 
             if len(r['rois']):
+                detection_frame = 0
                 bbox = extra.format_bbox(r['rois'])
+                print(f"results: {[bbox.x, bbox.y, bbox.w + bbox.x, bbox.h + bbox.y]} {r['class_ids']}")
 
                 # To format for object tracking
                 bbox_values=[bbox.x, bbox.y, bbox.w, bbox.h]
@@ -121,23 +133,73 @@ def main(args):
                 names = np.array(names)
                 scores = np.array(scores)
 
-            tracking_fps.start()
-            ot.track_detected_object(original_frame, boxes, names, scores, r)
+                tracking_fps.start()
+                ot.track_detected_object(original_frame, boxes, names, scores)
+                tracked_bboxes = ot.get_tracked_bboxes()
+                tracking_fps.stop()
         
+        # When there is a matched tracked bboxes
+        ## Check if it is the nth frame (eg. n = 10)
+        ### If True: Run detection
+        #### If object detected: Updates bboxes
+        #### If nothing detected: run track prediction
+        ### If False: Run Track prediction only
         else:
-            print("Not detecting...\n")
-            detection_fps.stop()
+            detection_frame += 1
+            print("Matched tracked_bboxes found. Check if detection is needed...\n")
 
-            # Using Kalman filter to predict next bbox values
-            tracking_fps.start()
-            ot.tracker.predict()
+            if detection_frame >= 10:
+                print(f"Starting detection at {detection_frame}th frame...\n")
 
-        tracked_bboxes = ot.get_tracked_bboxes()
-        tracking_fps.stop()
-        
-        ot.show_tracked_object(original_frame, tracked_bboxes)        
+                results = model.detect([original_frame], verbose=0)
+                detection_fps.stop()
+
+                r = results[0]
+                display_instances(original_frame, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
+
+                boxes, scores, names = [], [], []
+
+                if len(r['rois']):
+                    detection_frame = 0
+                    bbox = extra.format_bbox(r['rois'])
+                    print(f"Detected results: {[bbox.x, bbox.y, bbox.w + bbox.x, bbox.h + bbox.y]}")
+
+                    # To format for object tracking
+                    bbox_values=[bbox.x, bbox.y, bbox.w, bbox.h]
+                    boxes.append(bbox_values)
+                    scores = r['scores'].tolist()
+                    names.append('target')
+
+                    boxes = np.array(boxes) 
+                    names = np.array(names)
+                    scores = np.array(scores)
+
+                    tracking_fps.start()
+                    ot.track_detected_object(original_frame, boxes, names, scores)
+                    tracked_bboxes = ot.get_tracked_bboxes()
+                    tracking_fps.stop()
+                else:
+                    print("Failed to detect...\n")
+ 
+                    # Using Kalman filter to predict next bbox values
+                    tracking_fps.start()
+                    ot.tracker.predict()
+                    tracked_bboxes = ot.get_tracked_bboxes()
+                    tracking_fps.stop()
+
+            else:
+                print("Not Detecting...\n")
+                detection_fps.stop()
+
+                # Using Kalman filter to predict next bbox values
+                tracking_fps.start()
+                ot.tracker.predict()
+                tracked_bboxes = ot.get_tracked_bboxes()
+                tracking_fps.stop()
+
+        print(f"Show tracked object: {tracked_bboxes}\n")    
+        ot.show_tracked_object(original_frame, tracked_bboxes)
         total_fps.stop()
-
         cv2.putText(original_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
         cv2.imshow("Output", original_frame)
 
@@ -145,7 +207,6 @@ def main(args):
         print(f"Time taken to track: {tracking_fps.elapsed():.2f} ms\n")
         avg_detection_ls.append(round(detection_fps.elapsed(),2))
         avg_tracking_ls.append(round(tracking_fps.elapsed(),2))
-        avg_total_fps_ls.append(round(total_fps.getFPS(),2))
 
         out.write(original_frame)
                 
@@ -159,7 +220,7 @@ def main(args):
     print(f"Total time taken for video: {duration.elapsed()/1000:.2f}s")
     print(f"Average time taken for detection: {sum(avg_detection_ls[-20:])/20:.2f} ms")
     print(f"Average time taken for tracking: {sum(avg_tracking_ls[-20:])/20:.2f} ms")
-    print(f"Average total fps: {sum(avg_total_fps_ls[-20:])/20:.2f} fps")
+    print(f"Average total fps: {total_fps.getFPS():.2f} fps")
 
 if __name__ == '__main__':
     main(sys.argv)
