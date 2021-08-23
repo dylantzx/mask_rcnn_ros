@@ -15,9 +15,12 @@ from Mask_RCNN.scripts.visualize_cv2 import model, class_dict, class_names
 from tensorflow.python.client import device_lib
 import numpy as np
 
-video_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_2.avi"
-output_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_2_goturn_results_3.mp4"
+# Choose tracker type
+tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN', 'MOSSE', 'CSRT']
+tracker_type = tracker_types[7]
 
+video_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3.avi"
+output_path   = f"/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3_{tracker_type}_results_2.mp4"
 
 def display_instances(image, boxes, masks, ids, names, scores):
     """
@@ -56,18 +59,34 @@ def main(args):
     print(device_lib.list_local_devices())
 
     # Create tracker
-    # Have to change dir so that the GOTURN caffemodel and prototxt files can be read during creation of tracker
+    # For GOTURN, have to change dir so that the GOTURN caffemodel and prototxt files can be read during creation of tracker
     print(f"Current dir: {os.getcwd()}")
     os.chdir("./GOTURN/")
 
     print(f"Current dir: {os.getcwd()}")
-    tracker = cv2.TrackerGOTURN_create()
+    if tracker_type == 'BOOSTING':
+        tracker = cv2.legacy.TrackerBoosting_create()
+    elif tracker_type == 'MIL':
+        tracker = cv2.TrackerMIL_create()
+    elif tracker_type == 'KCF':
+        tracker = cv2.legacy.TrackerKCF_create()
+    elif tracker_type == 'TLD':
+        tracker = cv2.legacy.TrackerTLD_create()
+    elif tracker_type == 'MEDIANFLOW':
+        tracker = cv2.legacy.TrackerMedianFlow_create()
+    elif tracker_type == 'GOTURN':
+        tracker = cv2.TrackerGOTURN_create()
+    elif tracker_type == 'MOSSE':
+        tracker = cv2.legacy.TrackerMOSSE_create()
+    elif tracker_type == "CSRT":
+        tracker = cv2.TrackerCSRT_create()
+    
+    print(f"Tracker type: {tracker_type}")
     
     os.chdir("../")
     print(f"Current dir: {os.getcwd()}")
 
     total_fps = FPS()
-    detection_fps = FPS()
     tracking_fps = FPS()
 
     extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
@@ -103,10 +122,7 @@ def main(args):
         frame_count+=1
         print(f"\nFrame: {frame_count}")
 
-        # Start timer
-        timer = cv2.getTickCount()
-
-        if detected == 0 or frame_count%30 == 0:
+        if detected == 0:
             print("Start detection...\n")
             results = model.detect([frame], verbose=0)
 
@@ -146,7 +162,8 @@ def main(args):
     
         out.write(frame)
         
-        print(f"Time taken to track: {tracking_fps.elapsed():.2f} ms\n")
+        print(f"Time taken to track: {tracking_fps.elapsed():.2f} ms")
+        print(f"Total time taken: {total_fps.elapsed():.2f} ms\n")
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break   
