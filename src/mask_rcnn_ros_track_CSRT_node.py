@@ -59,6 +59,9 @@ def main(args):
     frame_count = 0
     tracked = 0
 
+    prev_p1 = (0,0)
+    stationary_bbox = False
+
     extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
 
     while not rospy.is_shutdown():
@@ -73,7 +76,7 @@ def main(args):
             frame_count+=1
             print(f"\nFrame: {frame_count}")
 
-            if not tracked:
+            if not tracked or stationary_bbox:
                 print("Start detection...\n")
                 results = model.detect([frame], verbose=0)
 
@@ -87,6 +90,7 @@ def main(args):
                     # To format for object tracking
                     bbox=(bbox.x, bbox.y, bbox.w, bbox.h)
                     print(f"results: {bbox}")
+                    stationary_bbox = False
 
                     # Initialize tracker with first frame and bounding box 
                     tracker.init(frame, bbox)
@@ -101,6 +105,23 @@ def main(args):
                 p1 = (int(bbox[0]), int(bbox[1]))
                 p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
                 cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
+
+                if frame_count%90 == 0:
+                    curr_p1 = p1
+                    print(f"Curr: {curr_p1} Prev: {prev_p1}")
+                    # Compare curr p1 with prev p1 from n frames ago
+                    if prev_p1[0] - 5 <= curr_p1[0] <= prev_p1[0] + 5 \
+                    and prev_p1[1] - 5 <= curr_p1[1] <= prev_p1[1] + 5:
+                        stationary_bbox = True
+                        print(f"Have to redetect...")
+
+                    prev_p1 = curr_p1
+
+                # Publish to rostopic
+                bbox_ros = Bbox_values()
+                bbox_ros.x, bbox_ros.y = p1
+                bbox_ros.w, bbox_ros.h = int(bbox[2]), int(bbox[3])
+                ic.image_pub.publish(bbox_ros)
 
             # Calculate Frames per second (FPS)
             total_fps.stop()
