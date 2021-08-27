@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from FPS import *
-from ObjectTracker import *
-from ImageConverter import *
-from ExtraFunctions import *
+from functions.FPS import *
+from functions.ObjectTracker import *
+from functions.ImageConverter import *
+from functions.ExtraFunctions import *
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'

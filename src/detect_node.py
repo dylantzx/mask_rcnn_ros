@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from FPS import *
-from ImageConverter import *
-from ExtraFunctions import *
+from functions.FPS import *
+from functions.ImageConverter import *
+from functions.ExtraFunctions import *
 
 import os
 # 0 for GPU, -1 for CPU

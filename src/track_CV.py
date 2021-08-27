@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from FPS import *
-from ObjectTracker import *
-from ImageConverter import *
-from ExtraFunctions import *
+from functions.FPS import *
+from functions.ObjectTracker import *
+from functions.ImageConverter import *
+from functions.ExtraFunctions import *
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -20,7 +20,7 @@ tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN', 'MOSSE'
 tracker_type = tracker_types[7]
 
 video_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3.avi"
-output_path   = f"/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3_{tracker_type}_results_2.mp4"
+output_path   = f"/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3_thread_{tracker_type}_results_1.mp4"
 
 def display_instances(image, boxes, masks, ids, names, scores):
     """
