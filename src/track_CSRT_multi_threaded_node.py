@@ -72,7 +72,7 @@ def verify_tracker(bbox_detected, bbox_tracked):
 def display_frames():
     print(f"[{t.current_thread().name}] Display thread starting...")
 
-    while True:
+    while not rospy.is_shutdown():
         
         display = display_queue.get()
         start = time.perf_counter()
@@ -99,7 +99,7 @@ def object_tracking():
     print(f"[{t.current_thread().name}] Tracking thread starting...")
     total_fps = FPS()
 
-    while True:
+    while not rospy.is_shutdown():
         
         # Get curr frame
         curr_frame = frame_queue.get()
@@ -109,8 +109,13 @@ def object_tracking():
             break 
 
         count_lock.acquire()
+
+        if count >= 100000:
+            count = 0
+
         count+=1
         count_copy = count
+
         count_lock.release()
 
         print(f"[{t.current_thread().name}] Got frame from frame_queue - {count_copy}")
@@ -273,16 +278,18 @@ def object_tracking():
 def main(args):
 
     print(device_lib.list_local_devices())
+    rospy.init_node('drone_detector')
+    ic = ImageConverter(frame_queue)
 
     global count, tracker_init
 
-    tracking_thread = t.Thread(target=object_tracking)
-    display_thread = t.Thread(target=display_frames)
+    tracking_thread = t.Thread(target=object_tracking, name="Tracker")
+    display_thread = t.Thread(target=display_frames, name="Display")
 
     tracking_thread.start()
     display_thread.start()
 
-    while True:
+    while not rospy.is_shutdown():
 
         curr_frame = frame_queue.get()
         start = time.perf_counter()
