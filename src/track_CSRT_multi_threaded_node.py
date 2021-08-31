@@ -25,9 +25,6 @@ tracker = cv2.TrackerCSRT_create()
 tracker_init = False # Shared variable will result in readers-writers problem
 read_write_lock = t.Lock()
 
-video_path   = "/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3.avi"
-output_path   = f"/home/dylan/catkin_ws/src/mask_rcnn_ros/videos/video_3_multithread_CSRT_results_2.mp4"
-
 extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
 
 # Queues are thread-safe
@@ -40,22 +37,6 @@ display_queue = Queue()
 count = 0 
 count_lock = t.Lock()
 #################################################################
-
-def frame_grabber(vid):
-
-    print(f"[{t.current_thread().name}] Frame grabber thread starting...")
-    while True:
-
-        ok, frame = vid.read()
-        
-        if not ok:
-            for i in range(2):
-                frame_queue.put(None)
-            break
-
-        frame_queue.put(frame)
-
-    print(f"[{t.current_thread().name}] --- End of Frame grabber thread ---\n")
 
 def draw_tracked_bbox(curr_frame, bbox, detection=False):
     # Draw tracked bounding box
@@ -88,12 +69,13 @@ def verify_tracker(bbox_detected, bbox_tracked):
 
     return iou
 
-def display_frames(out):
+def display_frames():
     print(f"[{t.current_thread().name}] Display thread starting...")
 
     while True:
-        start = time.perf_counter()
+        
         display = display_queue.get()
+        start = time.perf_counter()
 
         if display is None:
             break
@@ -103,8 +85,6 @@ def display_frames(out):
 
         # Display result
         cv2.imshow("Output", frame)
-
-        # out.write(frame)
 
         if cv2.waitKey(100) & 0xFF == ord("q"):
             break
@@ -120,32 +100,44 @@ def object_tracking():
     total_fps = FPS()
 
     while True:
+        
+        # Get curr frame
+        curr_frame = frame_queue.get()
+
+        if curr_frame is None:
+            display_queue.put(None)
+            break 
+
+        count_lock.acquire()
+        count+=1
+        count_copy = count
+        count_lock.release()
+
+        print(f"[{t.current_thread().name}] Got frame from frame_queue - {count_copy}")
+
         total_fps.start()
         start = time.perf_counter()
         print(f'\n[{t.current_thread().name}] tracker_init: {tracker_init}')
         
         # Run tracking if tracker has been initiated before
         if tracker_init == True:
-            
-            # Get curr frame
-            curr_frame = frame_queue.get()
-
-            if curr_frame is None:
-                display_queue.put(None)
-                break 
-
-            count_lock.acquire()
-            count+=1
-            count_copy = count
-            count_lock.release()
-
-            print(f"[{t.current_thread().name}] Got frame from frame_queue - {count_copy}")
 
             # If no detection received in the detect_queue, continue with tracking
             if detect_queue.qsize() == 0:
                 
                 # Update Tracker
                 _ , bbox = tracker.update(curr_frame)
+
+                total_fps.stop()
+
+                # Display FPS on curr frame
+                cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+
+                # Draw tracked bounding box
+                draw_tracked_bbox(curr_frame, bbox)
+                    
+                # Display result
+                display_queue.put([curr_frame, count_copy])
 
             # If received a detection in the detect_queue, use the detection results
             # to verify if the tracked bbox is still correct
@@ -158,21 +150,17 @@ def object_tracking():
                     break 
                 
                 detected_frame = detected_results[0]
-                r = detected_results[1]
+                bbox = detected_results[1]
                 detected_num = detected_results[2]
                 bbox_tracked = detected_results[3]
 
                 # Check if got valid results
-                if len(r['rois']) and bbox_tracked is not False:
+                if bbox_tracked is not False:
 
-                    bbox = extra.format_bbox(r['rois'])
-
-                    # To format for object tracking
-                    bbox=(bbox.x, bbox.y, bbox.w, bbox.h)
                     print(f"[{t.current_thread().name}] Detected Frame {detected_num} results: {bbox}")
                     print(f"[{t.current_thread().name}] Tracked Frame {detected_num} results: {bbox_tracked}")
 
-                    # Check IOU >=0.7
+                    # Check IOU >=0.5
                     iou = verify_tracker(bbox, bbox_tracked)
                     print(f"[{t.current_thread().name}] IOU: {iou}")
 
@@ -182,16 +170,28 @@ def object_tracking():
                         # Continue updating tracker
                         _ , bbox = tracker.update(curr_frame)
 
+                        total_fps.stop()
+
+                        # Display FPS on curr frame
+                        cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+
+                        # Draw tracked bounding box
+                        draw_tracked_bbox(curr_frame, bbox)
+                            
+                        # Display result
+                        display_queue.put([curr_frame, count_copy])
+
                     else:
                         print(f"[{t.current_thread().name}] Tracker is wrong!")
 
                         read_write_lock.acquire()
                         tracker_init = False
                         read_write_lock.release()
+
                         total_fps.stop()
 
                         # Display FPS on curr frame
-                        cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+                        cv2.putText(curr_frame, f"FPS: -.--", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
                         cv2.putText(curr_frame, f"Tracker Is Wrong", (7,80), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
 
                         # Display result
@@ -201,47 +201,50 @@ def object_tracking():
                         continue
 
                 else:
-                    print(f"[{t.current_thread().name}] Failed to detect instance from {detected_num}. Updating track on frame {count_copy} instead...")
+                    print(f"[{t.current_thread().name}] Tracker not re-initialized...")
                     
                     # Update Tracker
                     _ , bbox = tracker.update(curr_frame)
-            
-            total_fps.stop()
 
-            # Display FPS on curr frame
-            cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+                    total_fps.stop()
 
-            # Draw tracked bounding box
-            draw_tracked_bbox(curr_frame, bbox)
-                
-            # Display result
-            display_queue.put([curr_frame, count_copy])
+                    # Display FPS on curr frame
+                    cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+
+                    # Draw tracked bounding box
+                    draw_tracked_bbox(curr_frame, bbox)
+                        
+                    # Display result
+                    display_queue.put([curr_frame, count_copy])
 
         else:
-            # The get() will block until get first detection
-            detected_results = detect_queue.get() 
 
-            # Ends if no more detection
-            if detected_results is None:
-                display_queue.put(None)
-                break
-            
-            read_write_lock.acquire()
+            if detect_queue.qsize() == 0:
 
-            detected_frame = detected_results[0]
-            r = detected_results[1]
-            detected_num = detected_results[2]  
+                display_queue.put([curr_frame, count_copy])
 
-            # Check if got valid results
-            if len(r['rois']):
+                total_fps.stop()
 
-                print(f"[{t.current_thread().name}] Got valid detection from detect_queue")
+                # Display FPS on detected frame
+                cv2.putText(curr_frame, f"FPS: -.--", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+                
+                # Display result
+                display_queue.put([curr_frame, count_copy])
 
-                bbox = extra.format_bbox(r['rois'])
+            else:
 
-                # To format for object tracking
-                bbox=(bbox.x, bbox.y, bbox.w, bbox.h)
-                print(f"[{t.current_thread().name}] Frame {detected_num} results: {bbox}")
+                detected_results = detect_queue.get() 
+
+                # Ends if no more detection
+                if detected_results is None:
+                    display_queue.put(None)
+                    break
+ 
+                detected_frame = detected_results[0]
+                bbox = detected_results[1]
+                detected_num = detected_results[2]  
+
+                read_write_lock.acquire()
 
                 # Init tracker
                 tracker.init(detected_frame, bbox)
@@ -254,13 +257,13 @@ def object_tracking():
                 # Draw tracked bounding box
                 draw_tracked_bbox(detected_frame, bbox, detection=True)
             
-            total_fps.stop()
+                total_fps.stop()
 
-            # Display FPS on detected frame
-            cv2.putText(detected_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-            
-            # Display result
-            display_queue.put([detected_frame, detected_num])
+                # Display FPS on detected frame
+                cv2.putText(detected_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+                
+                # Display result
+                display_queue.put([detected_frame, detected_num])
 
         stop = time.perf_counter()
         print(f"[{t.current_thread().name}] Time taken to track: {(stop-start)*1000:.2f}ms\n")
@@ -271,36 +274,18 @@ def main(args):
 
     print(device_lib.list_local_devices())
 
-    ############## Initialize to read and write video ##############
-    if video_path:
-        vid = cv2.VideoCapture(video_path) # detect on video
-    
-    width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = int(vid.get(cv2.CAP_PROP_FPS))
-    total_frame_count = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-    print(f"\nVideo fps: {fps}")
-    print(f"Video frame count: {total_frame_count}\n")
-
-    codec = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(output_path, codec, fps, (width, height)) # output_path must be .mp4
-
-    #################################################################
     global count, tracker_init
 
-    frame_grabber_thread = t.Thread(target=frame_grabber, args=(vid,))
     tracking_thread = t.Thread(target=object_tracking)
-    display_thread = t.Thread(target=display_frames, args=(out,))
+    display_thread = t.Thread(target=display_frames)
 
-    frame_grabber_thread.start()
     tracking_thread.start()
-    # display_thread.start()
+    display_thread.start()
 
     while True:
-        start = time.perf_counter()
 
         curr_frame = frame_queue.get()
+        start = time.perf_counter()
 
         count_lock.acquire()
         count+=1
@@ -332,14 +317,26 @@ def main(args):
         results = model.detect([curr_frame], verbose=0)
         r = results[0]
 
-        detect_queue.put([curr_frame, r, count_copy, bbox_tracked])
+        if len(r['rois']):
+
+            print(f"[{t.current_thread().name}] Got valid detection")
+
+            bbox_detected = extra.format_bbox(r['rois'])
+
+            # To format for object tracking
+            bbox_detected=(bbox_detected.x, bbox_detected.y, bbox_detected.w, bbox_detected.h)
+            print(f"[{t.current_thread().name}] Frame {count_copy} results: {bbox_detected}")
+
+            detect_queue.put([curr_frame, bbox_detected, count_copy, bbox_tracked])
+        
+        else:
+            print(f"[{t.current_thread().name}] Failed to detect!")
 
         print(f"[{t.current_thread().name}] Put frame {count_copy} in detect_queue")
         
         stop = time.perf_counter()
         print(f"[{t.current_thread().name}] Time taken to detect: {(stop-start)*1000:.2f}ms\n")   
 
-    frame_grabber_thread.join()
     tracking_thread.join()
 
     display_thread.start()
@@ -347,13 +344,9 @@ def main(args):
 
     print(f'[{t.current_thread().name}] frame_queue: {frame_queue.qsize()}\n')
     print(f'[{t.current_thread().name}] detect_queue: {detect_queue.qsize()}')
-    print(f'[{t.current_thread().name}] detect_queue: {list(detect_queue.queue)}\n')
     print(f'[{t.current_thread().name}] display_queue: {display_queue.qsize()}')
-    print(f'[{t.current_thread().name}] display_queue: {list(display_queue.queue)}\n')
     print(f"[{t.current_thread().name}] ---End---")
-    
-    vid.release()
-    out.release()
+ 
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':

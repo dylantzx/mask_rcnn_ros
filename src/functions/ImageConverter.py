@@ -8,10 +8,11 @@ import threading
 
 class ImageConverter:
 
-    def __init__(self):
+    def __init__(self, frameQueue=None):
         self.image_pub = rospy.Publisher("bbox_output",Bbox_values, queue_size=10)
         self.image_sub = rospy.Subscriber("image_topic",Image,self.callback)
         self.cv_img = None
+        self.frameQueue = frameQueue
 
     def callback(self,data):
         # rospy.loginfo("\nCallback Thread ID %s\n\n", threading.current_thread())
@@ -37,3 +38,6 @@ class ImageConverter:
             self.cv_img = cv2.cvtColor(self.cv_img, cv2.COLOR_RGB2GRAY)
         else:
             self.cv_img = cv2.cvtColor(self.cv_img, cv2.COLOR_RGB2BGR)
+
+        if self.frameQueue is not None:
+            self.frameQueue.put(self.cv_img)
