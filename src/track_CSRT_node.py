@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from functions.FPS import *
-from functions.ObjectTracker import *
 from functions.ImageConverter import *
 from functions.ExtraFunctions import *
 
@@ -9,7 +8,7 @@ import sys
 import rospy
 import cv2
 
-from Mask_RCNN.scripts.visualize_cv2 import model, class_dict, class_names
+from Mask_RCNN.scripts.visualize_cv2 import model, class_dict, class_names, apply_mask
 from tensorflow.python.client import device_lib
 import numpy as np
 

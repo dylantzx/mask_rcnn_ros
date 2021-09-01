@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from functions.FPS import *
-from functions.ObjectTracker import *
 from functions.ImageConverter import *
 from functions.ExtraFunctions import *
 

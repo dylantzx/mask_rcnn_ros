@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from functions.FPS import *
-from functions.ObjectTracker import *
 from functions.ImageConverter import *
 from functions.ExtraFunctions import *
 
@@ -107,6 +106,9 @@ def object_tracking():
         if curr_frame is None:
             display_queue.put(None)
             break 
+        
+        total_fps.start()
+        start = time.perf_counter()
 
         count_lock.acquire()
 
@@ -119,9 +121,6 @@ def object_tracking():
         count_lock.release()
 
         print(f"[{t.current_thread().name}] Got frame from frame_queue - {count_copy}")
-
-        total_fps.start()
-        start = time.perf_counter()
         print(f'\n[{t.current_thread().name}] tracker_init: {tracker_init}')
         
         # Run tracking if tracker has been initiated before

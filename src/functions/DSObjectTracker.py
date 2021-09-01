@@ -9,7 +9,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 
-class ObjectTracker:
+class DSObjectTracker:
 
     def __init__(self):
         self.rectangle_colors=(255,0,0)

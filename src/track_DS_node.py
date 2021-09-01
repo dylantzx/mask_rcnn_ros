@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from functions.FPS import *
-from functions.ObjectTracker import *
+from functions.DSObjectTracker import *
 from functions.ImageConverter import *
 from functions.ExtraFunctions import *
 
@@ -50,7 +50,7 @@ def main(args):
   print(device_lib.list_local_devices())
   rospy.init_node('drone_detector')
   ic = ImageConverter()
-  ot = ObjectTracker()
+  ot = DSObjectTracker()
 
   total_fps = FPS()
   detection_fps = FPS()

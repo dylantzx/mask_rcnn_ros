@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from functions.FPS import *
-from functions.ObjectTracker import *
+from functions.DSObjectTracker import *
 from functions.ImageConverter import *
 from functions.ExtraFunctions import *
 
@@ -54,7 +54,7 @@ def display_instances(image, boxes, masks, ids, names, scores):
 def main(args):
 
     print(device_lib.list_local_devices())
-    ot = ObjectTracker()
+    ot = DSObjectTracker()
 
     duration = FPS()
     total_fps = FPS()
