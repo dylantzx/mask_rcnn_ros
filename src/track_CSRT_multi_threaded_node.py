@@ -110,15 +110,12 @@ def object_tracking():
         total_fps.start()
         start = time.perf_counter()
 
-        count_lock.acquire()
+        with count_lock:
+            if count >= 100000:
+                count = 0
 
-        if count >= 100000:
-            count = 0
-
-        count+=1
-        count_copy = count
-
-        count_lock.release()
+            count+=1
+            count_copy = count
 
         print(f"[{t.current_thread().name}] Got frame from frame_queue - {count_copy}")
         print(f'\n[{t.current_thread().name}] tracker_init: {tracker_init}')
@@ -166,9 +163,8 @@ def object_tracking():
                     else:
                         print(f"[{t.current_thread().name}] Tracker is wrong!")
 
-                        read_write_lock.acquire()
-                        tracker_init = False
-                        read_write_lock.release()
+                        with read_write_lock:
+                            tracker_init = False
 
                         tracker_wrong = True
 
@@ -218,13 +214,10 @@ def object_tracking():
                 bbox = detected_results[1]
                 detected_num = detected_results[2]  
 
-                read_write_lock.acquire()
-
+                with read_write_lock:
                 # Init tracker
-                tracker.init(detected_frame, bbox)
-                tracker_init = True
-                
-                read_write_lock.release()
+                    tracker.init(detected_frame, bbox)
+                    tracker_init = True
                 
                 print(f"[{t.current_thread().name}] Tracker initialized!")
                 
@@ -263,10 +256,9 @@ def main(args):
         curr_frame = frame_queue.get()
         start = time.perf_counter()
 
-        count_lock.acquire()
-        count+=1
-        count_copy = count
-        count_lock.release()
+        with count_lock:
+            count+=1
+            count_copy = count
 
         print(f"[{t.current_thread().name}] Taking from frame_queue - Frame {count_copy}")
 
@@ -279,15 +271,13 @@ def main(args):
         # Placed this before undergoing detection as detection is slow where tracker thread may have updated
         # the tracker for a few frames already
 
-        read_write_lock.acquire()
+        with read_write_lock: 
 
-        if tracker_init == True:
-            _ , bbox_tracked = tracker.update(curr_frame)
+            if tracker_init == True:
+                _ , bbox_tracked = tracker.update(curr_frame)
 
-        else:
-            bbox_tracked = False
-        
-        read_write_lock.release()
+            else:
+                bbox_tracked = False
         
         # Mask RCNN detection
         results = model.detect([curr_frame], verbose=0)
