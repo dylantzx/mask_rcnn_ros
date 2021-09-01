@@ -67,10 +67,10 @@ def verify_tracker(bbox_detected, bbox_tracked):
     return iou
 
 def display_frames():
-    print(f"[{t.current_thread().name}] Display thread starting...")
+    print(f"\n[{t.current_thread().name}] Display thread starting...")
 
     while not rospy.is_shutdown():
-        
+
         display = display_queue.get()
         start = time.perf_counter()
 
