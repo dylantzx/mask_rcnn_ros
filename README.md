@@ -173,3 +173,134 @@ In your terminal, change directory into `Mask_RCNN/evaluation` and run `python m
 
 Upon successful execution, you should get an excel spreadsheet under `Mask_RCNN/exports/` with your evaluation results.
 
+## Extra
+---
+**1. Terminator**
+
+To make life easier, you can install terminator, an alternative terminal with additional features and functionality
+
+To install, enter these commands:
+```
+sudo add-apt-repository ppa:gnome-terminator
+sudo apt-get update
+sudo apt-get install terminator
+```
+You can open terminator up with `ctrl + alt + t`
+
+To split into multiple terminals, use `ctrl + shift + o` or `ctrl + shift + o`
+
+When you have your desired layout, right click on any terminal, click on **Preferences**, Go to the Layouts tab, add new layout, rename as **default**, click save, then close.
+
+Restart terminator and you should have your desired layout upon startup
+
+![terminator](images/terminator.png)
+
+**2. Aliases**
+
+With aliases, you can run the programs quicker without having to type out the whole command. Here is how to add aliases:
+
+1. Go to the home directory and open up the .bashrc file
+    ```
+    cd ~
+    gedit .bashrc
+    ```
+2. Add the following aliases at the bottom of the file
+    ```
+    # Easier navigation
+    alias ..="cd .."
+    alias ...="cd ../.."
+    alias ....="cd ../../.."
+    alias ~="cd ~"
+    alias src="source ~/.bashrc"
+    alias c="cd ~/catkin_ws && catkin build"
+    alias cs="cd ~/catkin_ws/src && source ~/catkin_ws/devel/setup.bash"
+    alias brc="gedit ~/.bashrc"
+
+    # PX4
+    alias m="cd ~/PX4/PX4-Autopilot && make"
+    alias p="cd ~/PX4 && ./px4.sh"
+    alias qgc="cd ~/PX4 && ./QGroundControl.AppImage"
+
+    # ROS
+    alias rr="rosrun target_following target_following"
+    alias mrl="roslaunch mask_rcnn_ros rcnn_track.launch"
+    alias yl="roslaunch yolo_ros yolo_track.launch"
+
+    # git commands
+    alias st="git status"
+    alias add="git add ."
+    alias push="git push"
+
+    # virtual env
+    alias cnn="conda activate my_env"
+    alias yolo="conda activate yolo"
+    alias deact="conda deactivate"
+
+    # Monitor GPU utilization
+    alias gpu="gpustat --watch -cp"
+    ```
+3. Restart terminator
+
+
+Now that you have added these aliases, if you want to run the `px4.sh` shell script, instead of going to the terminal to type `cd ~/PX4 && ./px4.sh`, you can now just type `p` and enter
+
+**3. Visual Code Studio**
+
+You can download VCS so that you can edit/read/write codes more easily. To do so:
+1. Go to https://code.visualstudio.com/ and download vcs
+
+2. Open the PX4/PX4-Autopilot folder
+
+3. Install all workspace extension recommendations
+
+**Note: Do not install a newer version of Cmake as the correct version has already been installed**
+## References
+---
+ROS launch file basics:
+- https://www.cse.sc.edu/~jokane/agitr/agitr-letter-launch.pdf
+
+Git modules and submodules guide: 
+- https://devconnected.com/how-to-add-and-update-git-submodules/
+
+- https://stackoverflow.com/questions/20929336/git-submodule-add-a-git-directory-is-found-locally-issue
+
+Mask RCNN:
+
+- https://github.com/akTwelve/tutorials/blob/master/mask_rcnn/MaskRCNN_TrainAndInference.ipynb
+
+- https://github.com/matterport/Mask_RCNN
+
+DeepSORT:
+- https://github.com/nwojke/deep_sort
+
+- https://nanonets.com/blog/object-tracking-deepsort/#deep-sort
+
+- https://drive.google.com/drive/folders/0B6tjyrV1YrHeMVV2UFFXQld6X1E?resourcekey=0-1oM3LfkEMx36X-Qdq3LlxA
+
+- https://medium.com/augmented-startups/deepsort-deep-learning-applied-to-object-tracking-924f59f99104
+
+TensorRT:
+- https://towardsdatascience.com/low-precision-inference-with-tensorrt-6eb3cda0730b
+
+- https://github.com/NVIDIA/TensorRT/tree/release/7.0/samples/opensource/sampleUffMaskRCNN
+
+- https://www.ccoderun.ca/programming/doxygen/tensorrt/md_TensorRT_samples_opensource_sampleUffMaskRCNN_README.html
+
+- https://github.com/NVIDIA-AI-IOT/tf_trt_models
+
+Object tracking:
+- https://www.pyimagesearch.com/2018/10/29/multi-object-tracking-with-dlib/
+
+- https://www.pyimagesearch.com/2017/02/06/faster-video-file-fps-with-cv2-videocapture-and-opencv/
+
+- https://learnopencv.com/object-tracking-using-opencv-cpp-python/
+
+- https://github.com/tau-adl/Detection_Tracking_JetsonTX2
+
+Multi threading:
+- https://www.researchgate.net/figure/Flow-chart-of-the-multi-thread-detection-and-tracking-Detection-thread-provides-new_fig3_319592114
+
+- https://openaccess.thecvf.com/content_ICCV_2017/papers/Fan_Parallel_Tracking_and_ICCV_2017_paper.pdf
+
+Others:
+- https://github.com/wookayin/gpustat
