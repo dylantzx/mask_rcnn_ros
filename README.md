@@ -29,11 +29,13 @@
 ## About
 ---
 
-This is a ROS package of [Mask RCNN](https://github.com/akTwelve/Mask_RCNN) with [DeepSORT](https://github.com/nwojke/deep_sort) for object detection, instance segmentation and object tracking.
+This is a ROS package of [Mask RCNN](https://github.com/akTwelve/Mask_RCNN) with [DeepSORT](https://github.com/nwojke/deep_sort) and [OpenCV Tracking Algorithms](https://learnopencv.com/object-tracking-using-opencv-cpp-python/) for object detection, instance segmentation and object tracking.
 
 It contains ROS nodes for object detection and object detection with tracking.
 
 The current repository is for a drone tracking another drone on PX4 but you should be able to adapt it for your own use case.
+
+Currently, the implementation of Object Tracking using DeepSORT  does not work that well but the implementation of Object Tracking using CSRT Tracker works quite decently.   
 
 ## Installation Guide
 ---
@@ -53,7 +55,7 @@ The current repository is for a drone tracking another drone on PX4 but you shou
 3. [Conda environment guide](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
 
 ### The rest of the prerequisites ###
-Clone the repository then change to the `Mask_RCNN` directory in terminal and use `pip install -r requirements.txt` 
+Clone the repository then go to the `Mask_RCNN` directory in terminal and use `pip install -r requirements.txt` 
 ```
 cd ~/catkin_ws/src
 git clone https://github.com/dylantzx/mask_rcnn_ros.git --recursive
@@ -67,15 +69,33 @@ You can also install them individually with `pip install <requirement>` in your 
 ## Getting Started
 ---
 
+**Functions:**
+
 [FPS.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/FPS.py) - Contains a simple FPS class for FPS calculation 
 
-[ImageConverter.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/ImageConverter.py) - Contains ImageConverter class that converts images received via GazeboROS Plugin of `sensor_msgs` type to a usable type for object detection. 
+[ImageConverter.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/ImageConverter.py) - Contains ImageConverter class that converts images received via GazeboROS Plugin of `sensor_msgs` type, to a usable type for object detection and tracking. 
 
-[ObjectTracker.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/ObjectTracker.py) - Contains class to utilize DeepSORT for object tracking.
+[DSObjectTracker.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/DSObjectTracker.py) - Contains class to utilize DeepSORT for object tracking.
 
-[mask_rcnn_ros_detect_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/mask_rcnn_ros_detect_node.py) - Main script that runs MaskRCNN with ROS for object detection
+[ExtraFunctions.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/ExtraFunctions.py) - Includes a method to format bbox and crop detected images for [cosine metric learning](https://github.com/nwojke/cosine_metric_learning)
 
-[mask_rcnn_ros_track_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/mask_rcnn_ros_track_node.py) - Main script that runs MaskRCNN with ROS for object detection with tracking.
+**Nodes:**
+
+[detect_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/detect_node.py) - Main script that runs MaskRCNN with ROS for object detection in real-time.
+
+[track_DS_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_DS_node.py) - Main script that runs MaskRCNN with ROS for object detection with DeepSORT tracking in real-time.
+
+[track_CSRT_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_CSRT_node.py) - Main script that runs MaskRCNN with ROS for object detection with CSRT tracking in real-time.
+
+[track_CSRT_mt_node.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_CSRT_mt_node.py) - Main script that runs MaskRCNN with ROS for object detection with CSRT tracking, in a multi-threaded approach in real-time.
+
+**Scripts:**
+
+[track_DS.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_DS.py) - Script runs MaskRCNN for object detection with DeepSORT tracking on a video.
+
+[track_CV.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_CV.py) - Script runs MaskRCNN for object detection with CV tracking methods on a video.
+
+[track_CSRT_mt.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_CSRT_mt.py) - Script runs MaskRCNN for object detection with multi-threaded CSRT tracking on a video.
 
 ## How to run codes
 ---
