@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="tracking_node" pkg="mask_rcnn_ros" type="track_CSRT_mt_v2_node.py" output="screen">
+    <node name="tracking_node" pkg="mask_rcnn_ros" type="track_CSRT_mt_v1_node.py" output="screen">
         <remap from="image_topic" to="/uav0/camera/image_raw" />
     </node>
 </launch>

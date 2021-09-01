@@ -13,7 +13,7 @@ from tensorflow.python.client import device_lib
 import numpy as np
 
 import threading as t
-from queue import Queue
+from queue import Queue, LifoQueue
 import time
 
 ##################### Set global variables #####################
@@ -25,9 +25,9 @@ read_write_lock = t.Lock()
 extra = ExtraFunctions(cropped_path = "/home/dylan/Videos/image_train/")
 
 # Queues are thread-safe
-frame_queue = Queue()
-detect_queue = Queue()
-display_queue = Queue()
+frame_queue = LifoQueue(maxsize=1)
+detect_queue = Queue(maxsize=10)
+display_queue = Queue(maxsize=10)
 
 # count is a global variable in the shared memory between threads.
 # Therefore, have to use locks to prevent race condition
@@ -254,6 +254,12 @@ def main(args):
     while not rospy.is_shutdown():
 
         curr_frame = frame_queue.get()
+
+        if curr_frame is None:
+            detect_queue.put(None)
+            display_queue.put(None)
+            break
+
         start = time.perf_counter()
 
         with count_lock:
@@ -261,11 +267,6 @@ def main(args):
             count_copy = count
 
         print(f"[{t.current_thread().name}] Taking from frame_queue - Frame {count_copy}")
-
-        if curr_frame is None:
-            detect_queue.put(None)
-            display_queue.put(None)
-            break
 
         # Have to always keep tracker updated so that we can compare detection and tracked results
         # Placed this before undergoing detection as detection is slow where tracker thread may have updated
