@@ -91,7 +91,7 @@ def display_frames():
 
     print(f"[{t.current_thread().name}] --- End of Display thread ---\n")
 
-def object_tracking():
+def object_tracking(ic):
     global count, tracker_init
     print(f"[{t.current_thread().name}] Tracking thread starting...")
     total_fps = FPS()
@@ -180,6 +180,13 @@ def object_tracking():
                 cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
                 # Draw tracked bounding box
                 draw_tracked_bbox(curr_frame, bbox)
+                
+                 # Publish to rostopic
+                bbox_ros = Bbox_values()
+                bbox_ros.x, bbox_ros.y = int(bbox[0]), int(bbox[1])
+                bbox_ros.w, bbox_ros.h = int(bbox[2]), int(bbox[3])
+                ic.image_pub.publish(bbox_ros)
+
             else:
                 cv2.putText(curr_frame, f"FPS: -.--", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
                 cv2.putText(curr_frame, f"Tracker Is Wrong", (7,80), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
@@ -245,8 +252,8 @@ def main(args):
 
     global count, tracker_init
 
-    tracking_thread = t.Thread(target=object_tracking, name="Tracker")
-    display_thread = t.Thread(target=display_frames, name="Display")
+    tracking_thread = t.Thread(name="Tracker", target=object_tracking, args=(ic,))
+    display_thread = t.Thread(name="Display", target=display_frames)
 
     tracking_thread.start()
     display_thread.start()
