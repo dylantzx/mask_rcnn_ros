@@ -71,13 +71,13 @@ You can also install them individually with `pip install <requirement>` in your 
 
 **Functions:**
 
-[FPS.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/FPS.py) - Contains a simple FPS class for FPS calculation 
+[FPS.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/functions/FPS.py) - Contains a simple FPS class for FPS calculation 
 
-[ImageConverter.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/ImageConverter.py) - Contains ImageConverter class that converts images received via GazeboROS Plugin of `sensor_msgs` type, to a usable type for object detection and tracking. 
+[ImageConverter.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/functions/ImageConverter.py) - Contains ImageConverter class that converts images received via GazeboROS Plugin of `sensor_msgs` type, to a usable type for object detection and tracking. 
 
-[DSObjectTracker.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/DSObjectTracker.py) - Contains class to utilize DeepSORT for object tracking.
+[DSObjectTracker.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/functions/DSObjectTracker.py) - Contains class to utilize DeepSORT for object tracking.
 
-[ExtraFunctions.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/ExtraFunctions.py) - Includes a method to format bbox and crop detected images for [cosine metric learning](https://github.com/nwojke/cosine_metric_learning)
+[ExtraFunctions.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/functions/ExtraFunctions.py) - Includes a method to format bbox and crop detected images for [cosine metric learning](https://github.com/nwojke/cosine_metric_learning)
 
 **Nodes:**
 
@@ -97,23 +97,62 @@ You can also install them individually with `pip install <requirement>` in your 
 
 [track_CSRT_mt.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_CSRT_mt.py) - Script runs MaskRCNN for object detection with multi-threaded CSRT tracking on a video.
 
-## How to run codes
+## Modifying to use it on your own dataset
 ---
-1. Go into your virtual environment
+
+1. Go to `Mask_RCNN/scripts/visualize_cv2.py`.
+2. Change the path of `ROOT_DIR` and `COCO_MODEL_PATH` in __lines 11 and 13__ into the paths of your own root_dir and weight file.
+3. Change the `class_names` in __line 53__ to your own list of class names. 
+4. Change the settings in `InferenceConfig` (Optional)
+5. If you want to run the **nodes** eg. `track_CSRT_mt_node.py`:
+    - Go to the launch file that you will be using under `mask_rcnn_ros/launch/rcnn_<detect/track>.launch`.
+    - Change the `type="<node>"` into the node that you want to launch
+    - Remap the `image_topic` to your own ROS Topic that is publishing the images.
+
+6. If you want to run the **scripts** eg. `track_CSRT_mt.py`:
+    - Go into the file and change the `video_path` and `output_path` in __lines 27 and 28__ into where you want to input and output the videos to.
+
+## How to run in real-time with ROS
+---
+
+1. Firstly, run ROS, PX4, Gazebo and QGroundControl as explained in [this PX4 repo](https://github.com/dylantzx/PX4)
+
+2. In separate terminal, go into your virtual environment
 
     ```conda activate <your_env>```
 
-2. To run object detection, run the launch file
+3. In the same terminal, run the launch file with the following command:
+
+    - For **Object detection only**:
     
-    ```roslaunch mask_rcnn_ros rcnn_detect.launch```
+        ```roslaunch mask_rcnn_ros rcnn_detect.launch```
 
-![Object detection only](images/maskRCNN_detect.png)
+    - For **Object detection with tracking**:
+        
+        ```roslaunch mask_rcnn_ros rcnn_track.launch```
 
-3. To run object detection with tracking, run the launch file
-    
-    ```roslaunch mask_rcnn_ros rcnn_track.launch```
+Example:
 
-![Object detection with tracking](images/maskRCNN_track.png)
+![Example](images/terminal_commands.jpeg)
+
+Upon successful launch, you should be able to something like:
+
+![Object detection with tracking](images/successful_launch.png)
+
+## How to run scripts on videos
+---
+
+1. Open terminal, go into your virtual environment
+
+    ```conda activate <your_env>```
+
+2. Change directory:
+
+    ``` cd ~/catkin_ws/src/mask_rcnn_ros/src ```
+
+3. Run `python <script>`. For example:
+
+    ``` python track_CSRT_mt.py```
 
 ## Training MaskRCNN
 ---
@@ -124,21 +163,11 @@ Similar to the tutorial, place your images for training, validation and testing 
 
 After getting your weights (.h5 extension), place them under the `Mask_RCNN/model_weights` directory.
 
-## Modifying to use it on your own dataset
----
-
-1. Go to `Mask_RCNN/scripts/visualize_cv2.py`.
-2. Change the path of `COCO_MODEL_PATH` in line 13 to the name of your weight file.
-3. Change the `class_names` in line 53 to your own list of class names
-4. If required, change the settings in `InferenceConfig`
-5. Go to the launch file that you will be using
-6. Remap the `image_topic` to your own ROStopic that is publishing the images
-
 ## Evaluation
 ---
 The evaluation script is found in the `Mask_RCNN/evaluation/main.py`.
 
-Change the path and names on lines 30 - 32 into your own.
+Change the path and names on __lines 30 - 32__ into your own.
 
 In your terminal, change directory into `Mask_RCNN/evaluation` and run `python main.py`
 
