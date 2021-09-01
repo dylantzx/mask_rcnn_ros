@@ -5,13 +5,11 @@ from functions.ObjectTracker import *
 from functions.ImageConverter import *
 from functions.ExtraFunctions import *
 
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
 import sys
+import rospy
 import cv2
 
-from Mask_RCNN.scripts.visualize_cv2 import model, class_dict, class_names
+from Mask_RCNN.scripts.visualize_cv2 import model
 from tensorflow.python.client import device_lib
 import numpy as np
 
@@ -86,7 +84,7 @@ def display_frames():
         # Display result
         cv2.imshow("Output", frame)
 
-        if cv2.waitKey(100) & 0xFF == ord("q"):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
         stop = time.perf_counter()
@@ -101,6 +99,8 @@ def object_tracking():
 
     while not rospy.is_shutdown():
         
+        tracker_wrong = False
+
         # Get curr frame
         curr_frame = frame_queue.get()
 
@@ -133,17 +133,6 @@ def object_tracking():
                 # Update Tracker
                 _ , bbox = tracker.update(curr_frame)
 
-                total_fps.stop()
-
-                # Display FPS on curr frame
-                cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-
-                # Draw tracked bounding box
-                draw_tracked_bbox(curr_frame, bbox)
-                    
-                # Display result
-                display_queue.put([curr_frame, count_copy])
-
             # If received a detection in the detect_queue, use the detection results
             # to verify if the tracked bbox is still correct
             else:
@@ -175,17 +164,6 @@ def object_tracking():
                         # Continue updating tracker
                         _ , bbox = tracker.update(curr_frame)
 
-                        total_fps.stop()
-
-                        # Display FPS on curr frame
-                        cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-
-                        # Draw tracked bounding box
-                        draw_tracked_bbox(curr_frame, bbox)
-                            
-                        # Display result
-                        display_queue.put([curr_frame, count_copy])
-
                     else:
                         print(f"[{t.current_thread().name}] Tracker is wrong!")
 
@@ -193,17 +171,7 @@ def object_tracking():
                         tracker_init = False
                         read_write_lock.release()
 
-                        total_fps.stop()
-
-                        # Display FPS on curr frame
-                        cv2.putText(curr_frame, f"FPS: -.--", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
-                        cv2.putText(curr_frame, f"Tracker Is Wrong", (7,80), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
-
-                        # Display result
-                        display_queue.put([curr_frame, count_copy])
-                        stop = time.perf_counter()
-                        print(f"[{t.current_thread().name}] Time taken to track: {(stop-start)*1000:.2f}ms\n")
-                        continue
+                        tracker_wrong = True
 
                 else:
                     print(f"[{t.current_thread().name}] Tracker not re-initialized...")
@@ -211,16 +179,18 @@ def object_tracking():
                     # Update Tracker
                     _ , bbox = tracker.update(curr_frame)
 
-                    total_fps.stop()
+            total_fps.stop()
 
-                    # Display FPS on curr frame
-                    cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+            if tracker_wrong == False:
+                cv2.putText(curr_frame, f"FPS: {total_fps.getFPS():.2f}", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+                # Draw tracked bounding box
+                draw_tracked_bbox(curr_frame, bbox)
+            else:
+                cv2.putText(curr_frame, f"FPS: -.--", (7,40), cv2.FONT_HERSHEY_COMPLEX, 1.4, (100, 255, 0), 3, cv2.LINE_AA)
+                cv2.putText(curr_frame, f"Tracker Is Wrong", (7,80), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2)
 
-                    # Draw tracked bounding box
-                    draw_tracked_bbox(curr_frame, bbox)
-                        
-                    # Display result
-                    display_queue.put([curr_frame, count_copy])
+            # Display result
+            display_queue.put([curr_frame, count_copy])
 
         else:
 
@@ -345,8 +315,6 @@ def main(args):
         print(f"[{t.current_thread().name}] Time taken to detect: {(stop-start)*1000:.2f}ms\n")   
 
     tracking_thread.join()
-
-    display_thread.start()
     display_thread.join()
 
     print(f'[{t.current_thread().name}] frame_queue: {frame_queue.qsize()}\n')
