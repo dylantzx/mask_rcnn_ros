@@ -1,7 +1,6 @@
 # mask_rcnn_ros
 
 ## Prerequisites
----
 - Ubuntu LTS 18.04
 
 - ROS Melodic 
@@ -27,7 +26,6 @@
 - CuDNN 
 
 ## About
----
 
 This is a ROS package of [Mask RCNN](https://github.com/akTwelve/Mask_RCNN) with [DeepSORT](https://github.com/nwojke/deep_sort) and [OpenCV Tracking Algorithms](https://learnopencv.com/object-tracking-using-opencv-cpp-python/) for object detection, instance segmentation and object tracking.
 
@@ -62,12 +60,13 @@ git clone https://github.com/dylantzx/mask_rcnn_ros.git --recursive
 cd mask_rcnn_ros/src/Mask_RCNN
 conda activate <your_env>
 pip install -r requirements.txt
+catkin build mask_rcnn_ros
+source ~/catkin_ws/devel/setup.bash
 ```
 
 You can also install them individually with `pip install <requirement>` in your virtual environment 
 
 ## Getting Started
----
 
 **Functions:**
 
@@ -98,7 +97,6 @@ You can also install them individually with `pip install <requirement>` in your 
 [track_CSRT_mt.py](https://github.com/dylantzx/mask_rcnn_ros/blob/main/src/track_CSRT_mt.py) - Script runs MaskRCNN for object detection with multi-threaded CSRT tracking on a video.
 
 ## Modifying to use it on your own dataset
----
 
 1. Go to `Mask_RCNN/scripts/visualize_cv2.py`.
 2. Change the path of `ROOT_DIR` and `COCO_MODEL_PATH` in __lines 11 and 13__ into the paths of your own root_dir and weight file.
@@ -113,7 +111,6 @@ You can also install them individually with `pip install <requirement>` in your 
     - Go into the file and change the `video_path` and `output_path` in __lines 27 and 28__ into where you want to input and output the videos to.
 
 ## How to run in real-time with ROS
----
 
 1. Firstly, run ROS, PX4, Gazebo and QGroundControl as explained in [this PX4 repo](https://github.com/dylantzx/PX4)
 
@@ -140,7 +137,6 @@ Upon successful launch, you should be able to something like:
 ![Object detection with tracking](images/successful_launch.png)
 
 ## How to run scripts on videos
----
 
 1. Open terminal, go into your virtual environment
 
@@ -155,7 +151,6 @@ Upon successful launch, you should be able to something like:
     ``` python track_CSRT_mt.py```
 
 ## Training MaskRCNN
----
 
 To train Mask_RCNN on your own custom dataset, you can refer to [this website](https://www.immersivelimit.com/tutorials/using-mask-r-cnn-on-custom-coco-like-dataset) and create a jupyter notebook, then place it under the `Mask_RCNN/scripts` directory. 
 
@@ -164,7 +159,6 @@ Similar to the tutorial, place your images for training, validation and testing 
 After getting your weights (.h5 extension), place them under the `Mask_RCNN/model_weights` directory.
 
 ## Evaluation
----
 The evaluation script is found in the `Mask_RCNN/evaluation/main.py`.
 
 Change the path and names on __lines 30 - 32__ into your own.
@@ -174,7 +168,6 @@ In your terminal, change directory into `Mask_RCNN/evaluation` and run `python m
 Upon successful execution, you should get an excel spreadsheet under `Mask_RCNN/exports/` with your evaluation results.
 
 ## Extra
----
 **1. Terminator**
 
 To make life easier, you can install terminator, an alternative terminal with additional features and functionality
@@ -255,7 +248,6 @@ You can download VCS so that you can edit/read/write codes more easily. To do so
 
 **Note: Do not install a newer version of Cmake as the correct version has already been installed**
 ## References
----
 ROS launch file basics:
 - https://www.cse.sc.edu/~jokane/agitr/agitr-letter-launch.pdf
 
